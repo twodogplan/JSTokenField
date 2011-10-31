@@ -40,8 +40,6 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 
 #define DEFAULT_HEIGHT 31
 
-#define ZERO_WIDTH_SPACE_STRING @"\u200B"
-
 @interface JSTokenField ();
 
 - (JSTokenButton *)tokenWithString:(NSString *)string representedObject:(id)obj;
@@ -109,14 +107,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
     //		[_textField.layer setBorderColor:[[UIColor redColor] CGColor]];
     //		[_textField.layer setBorderWidth:1.0];
     
-    [_textField setText:ZERO_WIDTH_SPACE_STRING];
-    
     [self addSubview:_textField];
-    
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(handleTextDidChange:)
-                                                 name:UITextFieldTextDidChangeNotification
-                                               object:_textField];
 }
 
 - (void)dealloc
@@ -304,27 +295,16 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 		[_deletedToken release], _deletedToken = nil;
 	}
 	
-	[[NSNotificationCenter defaultCenter] postNotificationName:JSTokenFieldFrameDidChangeNotification object:self userInfo:[[userInfo copy] autorelease]];
+	[[NSNotificationCenter defaultCenter] postNotificationName:JSTokenFieldFrameDidChangeNotification
+                                                        object:self userInfo:[[userInfo copy] autorelease]];
 }
 
 #pragma mark -
 #pragma mark UITextFieldDelegate
 
-- (void)handleTextDidChange:(NSNotification *)note
-{
-	// ensure there's always a space at the beginning
-	NSMutableString *text = [[[_textField text] mutableCopy] autorelease];
-	if (![text hasPrefix:ZERO_WIDTH_SPACE_STRING])
-	{
-		[text insertString:ZERO_WIDTH_SPACE_STRING atIndex:0];
-		[_textField setText:text];
-	}
-}
-
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
 {
-    if ([string isEqualToString:@""] &&
-        (NSEqualRanges(range, NSMakeRange(0, 0)) || [[textField text] isEqualToString:ZERO_WIDTH_SPACE_STRING]))
+    if ([string isEqualToString:@""] && NSEqualRanges(range, NSMakeRange(0, 0)))
 	{
         JSTokenButton *token = [_tokens lastObject];
         [token becomeFirstResponder];		
@@ -354,7 +334,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
     else if ([[textField text] length] > 1)
     {
         [self addTokenWithTitle:[textField text] representedObject:[textField text]];
-        [textField setText:ZERO_WIDTH_SPACE_STRING];
+        [textField setText:@""];
     }
 }
 
