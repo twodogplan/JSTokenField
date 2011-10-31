@@ -323,7 +323,8 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
 {
-	if ([[textField text] isEqualToString:ZERO_WIDTH_SPACE_STRING] && [string isEqualToString:@""])
+    if (textField == _textField && [string isEqualToString:@""] &&
+        (NSEqualRanges(range, NSMakeRange(0, 0)) || [[textField text] isEqualToString:ZERO_WIDTH_SPACE_STRING]))
 	{
 		for (JSTokenButton *token in _tokens)
 		{
@@ -349,8 +350,10 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 		[_textField becomeFirstResponder];
 		return NO;
 	}
-	else if (textField == _hiddenTextField)
-		return NO;
+	else if (textField == _hiddenTextField) {
+        [self deleteHighlightedToken];
+        return NO;
+    }
 	else
 	{
 		if ([_tokens count] > 0)
