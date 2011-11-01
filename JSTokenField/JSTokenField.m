@@ -304,7 +304,9 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 		[_deletedToken release], _deletedToken = nil;
 	}
 	
-	[[NSNotificationCenter defaultCenter] postNotificationName:JSTokenFieldFrameDidChangeNotification object:self userInfo:[[userInfo copy] autorelease]];
+	if (CGRectEqualToRect(oldFrame, frame) == NO) {
+		[[NSNotificationCenter defaultCenter] postNotificationName:JSTokenFieldFrameDidChangeNotification object:self userInfo:[[userInfo copy] autorelease]];
+	}
 }
 
 #pragma mark -
