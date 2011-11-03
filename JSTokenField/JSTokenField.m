@@ -151,12 +151,10 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	}
 }
 
-- (void)removeTokenForString:(NSString *)string
-{
+- (void)removeTokenWithTest:(BOOL (^)(JSTokenButton *token))test {
     JSTokenButton *tokenToRemove = nil;
     for (JSTokenButton *token in [_tokens reverseObjectEnumerator]) {
-        if ([[token titleForState:UIControlStateNormal] isEqualToString:string])
-		{
+        if (test(token)) {
             tokenToRemove = token;
             break;
         }
@@ -178,6 +176,19 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	}
 	
 	[self setNeedsLayout];
+}
+
+- (void)removeTokenForString:(NSString *)string
+{
+    [self removeTokenWithTest:^BOOL(JSTokenButton *token) {
+        return [[token titleForState:UIControlStateNormal] isEqualToString:string];
+    }];
+}
+
+- (void)removeTokenWithRepresentedObject:(id)representedObject {
+    [self removeTokenWithTest:^BOOL(JSTokenButton *token) {
+        return [[token representedObject] isEqual:representedObject];
+    }];
 }
 
 - (void)deleteHighlightedToken
