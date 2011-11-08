@@ -80,13 +80,6 @@
 	}
 }
 
-- (void)dealloc
-{
-	self.representedObject = nil;
-	self.highlightedBg = nil;
-	self.normalBg = nil;
-    [super dealloc];
-}
 
 - (BOOL)becomeFirstResponder {
     BOOL superReturn = [super becomeFirstResponder];

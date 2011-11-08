@@ -122,11 +122,10 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 - (void)dealloc
 {
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	[_textField release], _textField = nil;
-	[_label release], _label = nil;
-	[_tokens release], _tokens = nil;
+	_textField = nil;
+	_label = nil;
+	_tokens = nil;
 	
-	[super dealloc];
 }
 
 
@@ -165,15 +164,14 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
             [_textField becomeFirstResponder];
         }
         [tokenToRemove removeFromSuperview];
-        [[tokenToRemove retain] autorelease]; // removing it from the array will dealloc the object, but we want to keep it around for the delegate method below
         
-        [_tokens removeObject:tokenToRemove];
         if ([self.delegate respondsToSelector:@selector(tokenField:didRemoveToken:representedObject:)])
         {
 				NSString *tokenName = [tokenToRemove titleForState:UIControlStateNormal];
 				[self.delegate tokenField:self didRemoveToken:tokenName representedObject:tokenToRemove.representedObject];
 
         }
+        [_tokens removeObject:tokenToRemove];
 	}
 	
 	[self setNeedsLayout];
@@ -196,7 +194,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 {
 	for (int i = 0; i < [_tokens count]; i++)
 	{
-		_deletedToken = [[_tokens objectAtIndex:i] retain];
+		_deletedToken = [_tokens objectAtIndex:i];
 		if ([_deletedToken isToggled])
 		{
 			[_deletedToken removeFromSuperview];
@@ -314,11 +312,11 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	if (_deletedToken)
 	{
 		[userInfo setObject:_deletedToken forKey:JSDeletedTokenKey]; 
-		[_deletedToken release], _deletedToken = nil;
+		_deletedToken = nil;
 	}
 	
 	if (CGRectEqualToRect(oldFrame, frame) == NO) {
-		[[NSNotificationCenter defaultCenter] postNotificationName:JSTokenFieldFrameDidChangeNotification object:self userInfo:[[userInfo copy] autorelease]];
+		[[NSNotificationCenter defaultCenter] postNotificationName:JSTokenFieldFrameDidChangeNotification object:self userInfo:[userInfo copy]];
 	}
 }
 
@@ -328,7 +326,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 - (void)handleTextDidChange:(NSNotification *)note
 {
 	// ensure there's always a space at the beginning
-	NSMutableString *text = [[[_textField text] mutableCopy] autorelease];
+	NSMutableString *text = [[_textField text] mutableCopy];
 	if (![text hasPrefix:ZERO_WIDTH_SPACE_STRING])
 	{
 		[text insertString:ZERO_WIDTH_SPACE_STRING atIndex:0];
