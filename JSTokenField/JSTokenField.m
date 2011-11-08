@@ -83,7 +83,9 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 
 - (void)commonSetup {
     CGRect frame = self.frame;
-    [self setBackgroundColor:[UIColor colorWithRed:0.9 green:0.9 blue:0.9 alpha:1.0]];
+	if (self.backgroundColor == nil) {
+		[self setBackgroundColor:[UIColor colorWithRed:0.9 green:0.9 blue:0.9 alpha:1.0]];
+	}
     
     _label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 0, frame.size.height)];
     [_label setBackgroundColor:[UIColor clearColor]];
@@ -105,6 +107,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
     [_textField setBackground:nil];
     [_textField setBackgroundColor:[UIColor clearColor]];
     [_textField setContentVerticalAlignment:UIControlContentVerticalAlignmentCenter];
+    [_textField setFont:[UIFont fontWithName:@"Helvetica Neue" size:15.0]];
     
     //		[_textField.layer setBorderColor:[[UIColor redColor] CGColor]];
     //		[_textField.layer setBorderWidth:1.0];
@@ -128,27 +131,38 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	
 }
 
-
 - (void)addTokenWithTitle:(NSString *)string representedObject:(id)obj
 {
 	NSString *aString = [string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 	
-    [_textField setText:nil];
-    
 	if ([aString length])
 	{
 		JSTokenButton *token = [self tokenWithString:aString representedObject:obj];
         token.parentField = self;
 		[_tokens addObject:token];
+		token.alpha = 0.0;
+		token.titleLabel.font = _textField.font;
 		
+		[UIView animateWithDuration:0.3 
+						 animations:^{
+							 token.alpha = 1.0;
+							 _textField.alpha = 0.0;
+						 }
+						 completion:^(BOOL finished) {
+							 [_textField setText:nil];
+							 _textField.alpha = 1.0;
+							 [self setNeedsLayout];
+						 }
+		 ];
 		if ([self.delegate respondsToSelector:@selector(tokenField:didAddToken:representedObject:)])
 		{
 			[self.delegate tokenField:self didAddToken:aString representedObject:obj];
 		}
-		
 		[self setNeedsLayout];
+		
 	}
 }
+
 
 - (void)removeTokenWithTest:(BOOL (^)(JSTokenButton *token))test {
     JSTokenButton *tokenToRemove = nil;
@@ -263,22 +277,26 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	}
 	
 	CGRect textFieldFrame = [_textField frame];
-	
-	textFieldFrame.origin = currentRect.origin;
-	
-	if ((self.frame.size.width - textFieldFrame.origin.x) >= 60)
-	{
-		textFieldFrame.size.width = self.frame.size.width - textFieldFrame.origin.x;
+	if (_textField.alpha > 0.0) {
+		
+		textFieldFrame.origin = currentRect.origin;
+		textFieldFrame.origin.x += 10.0;
+		
+		if ((self.frame.size.width - textFieldFrame.origin.x) >= 60)
+		{
+			textFieldFrame.size.width = self.frame.size.width - textFieldFrame.origin.x;
+		}
+		else
+		{
+			textFieldFrame.size.width = self.frame.size.width;
+			textFieldFrame.origin = CGPointMake(WIDTH_PADDING * 2, 
+												(currentRect.origin.y + currentRect.size.height + HEIGHT_PADDING));
+		}
+		
+		textFieldFrame.origin.y += (HEIGHT_PADDING + 2.0); //fudge by two points to get the button label to line up with the UILabel's text
+		[_textField setFrame:textFieldFrame];
+		
 	}
-	else
-	{
-		textFieldFrame.size.width = self.frame.size.width;
-        textFieldFrame.origin = CGPointMake(WIDTH_PADDING * 2, 
-                                            (currentRect.origin.y + currentRect.size.height + HEIGHT_PADDING));
-	}
-	
-	textFieldFrame.origin.y += HEIGHT_PADDING;
-	[_textField setFrame:textFieldFrame];
 	CGRect selfFrame = [self frame];
 	selfFrame.size.height = textFieldFrame.origin.y + textFieldFrame.size.height + HEIGHT_PADDING;
 	
@@ -288,7 +306,6 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 					 }
 					 completion:nil];
 }
-
 - (void)toggle:(id)sender
 {
 	for (JSTokenButton *token in _tokens)
