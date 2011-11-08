@@ -41,11 +41,6 @@
 + (JSTokenButton *)tokenWithString:(NSString *)string representedObject:(id)obj
 {
 	JSTokenButton *button = (JSTokenButton *)[self buttonWithType:UIButtonTypeCustom];
-	[button setNormalBg:[[UIImage imageNamed:@"tokenNormal.png"] stretchableImageWithLeftCapWidth:14 topCapHeight:0]];
-	[button setHighlightedBg:[[UIImage imageNamed:@"tokenHighlighted.png"] stretchableImageWithLeftCapWidth:14 topCapHeight:0]];
-	[button setAdjustsImageWhenHighlighted:NO];
-	[button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-	[[button titleLabel] setFont:[UIFont fontWithName:@"Helvetica Neue" size:15]];
 	[[button titleLabel] setLineBreakMode:UILineBreakModeTailTruncation];
 	[button setTitleEdgeInsets:UIEdgeInsetsMake(2, 10, 0, 10)];
 	
@@ -63,23 +58,6 @@
 	
 	return button;
 }
-
-- (void)setToggled:(BOOL)toggled
-{
-	_toggled = toggled;
-	
-	if (_toggled)
-	{
-		[self setBackgroundImage:self.highlightedBg forState:UIControlStateNormal];
-		[self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-	}
-	else
-	{
-		[self setBackgroundImage:self.normalBg forState:UIControlStateNormal];
-		[self setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-	}
-}
-
 
 - (BOOL)becomeFirstResponder {
     BOOL superReturn = [super becomeFirstResponder];

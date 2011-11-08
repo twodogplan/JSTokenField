@@ -57,7 +57,7 @@ extern NSString *const JSDeletedTokenKey;
 - (void)addTokenWithTitle:(NSString *)string representedObject:(id)obj;
 - (void)removeTokenForString:(NSString *)string;
 - (void)removeTokenWithRepresentedObject:(id)representedObject;
-
+- (BOOL)containsTokenForRepresentedObject:(id)representedObject;
 @end
 
 @protocol JSTokenFieldDelegate <NSObject>

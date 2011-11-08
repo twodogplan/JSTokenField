@@ -204,6 +204,18 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
     }];
 }
 
+- (BOOL)containsTokenForRepresentedObject:(id)representedObject
+{
+	BOOL containsToken = NO; 
+    for (JSTokenButton *token in self.tokens) {
+		if ([token.representedObject isEqual:representedObject]) {
+			containsToken = YES;
+			break;
+		}
+	}
+	return containsToken;
+}
+
 - (void)deleteHighlightedToken
 {
 	for (int i = 0; i < [_tokens count]; i++)
