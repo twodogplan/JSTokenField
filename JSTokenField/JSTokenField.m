@@ -178,14 +178,17 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
             [_textField becomeFirstResponder];
         }
         [tokenToRemove removeFromSuperview];
+		
+		NSString *tokenName = [tokenToRemove titleForState:UIControlStateNormal];
+        id representedObject = tokenToRemove.representedObject;
+
+		[_tokens removeObject:tokenToRemove];
         
         if ([self.delegate respondsToSelector:@selector(tokenField:didRemoveToken:representedObject:)])
         {
-				NSString *tokenName = [tokenToRemove titleForState:UIControlStateNormal];
-				[self.delegate tokenField:self didRemoveToken:tokenName representedObject:tokenToRemove.representedObject];
+				[self.delegate tokenField:self didRemoveToken:tokenName representedObject:representedObject];
 
         }
-        [_tokens removeObject:tokenToRemove];
 	}
 	
 	[self setNeedsLayout];
@@ -386,7 +389,13 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	
 	return NO;
 }
-
+- (void)textFieldDidBeginEditing:(UITextField *)textField
+{
+    if ([self.delegate respondsToSelector:@selector(tokenFieldDidBeginEditing:)]) {
+        [self.delegate tokenFieldDidBeginEditing:self];
+    }
+	
+}
 - (void)textFieldDidEndEditing:(UITextField *)textField
 {
     if ([self.delegate respondsToSelector:@selector(tokenFieldDidEndEditing:)]) {
