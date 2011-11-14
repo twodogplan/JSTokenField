@@ -43,6 +43,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 #define ZERO_WIDTH_SPACE_STRING @"\u200B"
 
 @interface JSTokenField ();
+@property (nonatomic, assign, getter = isActivated)BOOL activated;
 
 - (JSTokenButton *)tokenWithString:(NSString *)string representedObject:(id)obj;
 - (void)deleteHighlightedToken;
@@ -56,7 +57,9 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 @synthesize tokens = _tokens;
 @synthesize textField = _textField;
 @synthesize label = _label;
+@synthesize summaryLabel;
 @synthesize delegate = _delegate;
+@synthesize activated;
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -109,13 +112,28 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
     [_textField setContentVerticalAlignment:UIControlContentVerticalAlignmentCenter];
     [_textField setFont:[UIFont fontWithName:@"Helvetica Neue" size:15.0]];
     
+	CGRect summaryFrame = frame;
+	summaryFrame.origin = CGPointZero;
+    summaryFrame.origin.y += HEIGHT_PADDING;
+	self.summaryLabel = [[UILabel alloc] initWithFrame:summaryFrame];
+	self.summaryLabel.autoresizingMask = UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleLeftMargin;
+	self.summaryLabel.userInteractionEnabled = NO;
+	self.summaryLabel.lineBreakMode = UILineBreakModeTailTruncation;
+	self.summaryLabel.textAlignment = UITextAlignmentLeft;
+	self.summaryLabel.numberOfLines = 1;
+	self.summaryLabel.font = self.textField.font;
+	self.summaryLabel.hidden = YES;
+	self.summaryLabel.backgroundColor = [UIColor clearColor];
     //		[_textField.layer setBorderColor:[[UIColor redColor] CGColor]];
     //		[_textField.layer setBorderWidth:1.0];
     
     [_textField setText:ZERO_WIDTH_SPACE_STRING];
     
     [self addSubview:_textField];
+	[self addSubview: self.summaryLabel];
     
+	self.activated = YES;
+	
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(handleTextDidChange:)
                                                  name:UITextFieldTextDidChangeNotification
@@ -125,10 +143,6 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 - (void)dealloc
 {
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	_textField = nil;
-	_label = nil;
-	_tokens = nil;
-	
 }
 
 - (void)addTokenWithTitle:(NSString *)string representedObject:(id)obj
@@ -258,62 +272,99 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	
 	return token;
 }
+- (void)inactivateAndShowSummary:(NSString *)summary
+{
+	self.activated = NO;
+	
+	self.summaryLabel.text = summary;
+	self.summaryLabel.hidden = NO;
+	
+	//hide all the tokens
+	[self.tokens enumerateObjectsUsingBlock:^(JSTokenButton *tokenButton, NSUInteger idx, BOOL *stop) {
+		tokenButton.hidden = YES;
+	}];
+	
+	[self setNeedsLayout];
+	
+}
+- (void)activate
+{
+	self.activated = YES;
+	self.summaryLabel.text = @"";
+	self.summaryLabel.hidden = YES;
+
+	//show all the tokens
+	[self.tokens enumerateObjectsUsingBlock:^(JSTokenButton *tokenButton, NSUInteger idx, BOOL *stop) {
+		tokenButton.hidden = NO;
+	}];
+	
+	[self.textField becomeFirstResponder];
+
+	[self setNeedsLayout];
+
+}
 
 - (void)layoutSubviews
 {
 	CGRect currentRect = CGRectZero;
-	
+	CGRect selfFrame = [self frame];
+
 	[_label sizeToFit];
 	[_label setFrame:CGRectMake(WIDTH_PADDING, HEIGHT_PADDING, [_label frame].size.width, [_label frame].size.height + 3)];
 	
 	currentRect.origin.x += _label.frame.size.width + _label.frame.origin.x + WIDTH_PADDING;
 	
-	for (UIButton *token in _tokens)
-	{
-		CGRect frame = [token frame];
-		
-		if ((currentRect.origin.x + frame.size.width) > self.frame.size.width)
+	if (self.activated) {
+		for (UIButton *token in _tokens)
 		{
-			currentRect.origin = CGPointMake(WIDTH_PADDING, (currentRect.origin.y + frame.size.height + HEIGHT_PADDING));
+			CGRect frame = [token frame];
+			
+			if ((currentRect.origin.x + frame.size.width) > self.frame.size.width)
+			{
+				currentRect.origin = CGPointMake(WIDTH_PADDING, (currentRect.origin.y + frame.size.height + HEIGHT_PADDING));
+			}
+			
+			frame.origin.x = currentRect.origin.x;
+			frame.origin.y = currentRect.origin.y + HEIGHT_PADDING;
+			
+			[token setFrame:frame];
+			
+			if (![token superview])
+			{
+				[self addSubview:token];
+			}
+			
+			currentRect.origin.x += frame.size.width + WIDTH_PADDING;
+			currentRect.size = frame.size;
 		}
 		
-		frame.origin.x = currentRect.origin.x;
-		frame.origin.y = currentRect.origin.y + HEIGHT_PADDING;
-		
-		[token setFrame:frame];
-		
-		if (![token superview])
-		{
-			[self addSubview:token];
+		CGRect textFieldFrame = [_textField frame];
+		if (_textField.alpha > 0.0) {
+			
+			textFieldFrame.origin = currentRect.origin;
+			textFieldFrame.origin.x += 10.0;
+			
+			if ((self.frame.size.width - textFieldFrame.origin.x) >= 60)
+			{
+				textFieldFrame.size.width = self.frame.size.width - textFieldFrame.origin.x;
+			}
+			else
+			{
+				textFieldFrame.size.width = self.frame.size.width;
+				textFieldFrame.origin = CGPointMake(WIDTH_PADDING * 2, 
+													(currentRect.origin.y + currentRect.size.height + HEIGHT_PADDING));
+			}
+			
+			textFieldFrame.origin.y += (HEIGHT_PADDING + 2.0); //fudge by two points to get the button label to line up with the UILabel's text
+			[_textField setFrame:textFieldFrame];
+			
 		}
-		
-		currentRect.origin.x += frame.size.width + WIDTH_PADDING;
-		currentRect.size = frame.size;
+		selfFrame.size.height = textFieldFrame.origin.y + textFieldFrame.size.height + HEIGHT_PADDING;		
+	} else {
+		selfFrame.size.height = self.summaryLabel.bounds.size.height;		
 	}
 	
-	CGRect textFieldFrame = [_textField frame];
-	if (_textField.alpha > 0.0) {
-		
-		textFieldFrame.origin = currentRect.origin;
-		textFieldFrame.origin.x += 10.0;
-		
-		if ((self.frame.size.width - textFieldFrame.origin.x) >= 60)
-		{
-			textFieldFrame.size.width = self.frame.size.width - textFieldFrame.origin.x;
-		}
-		else
-		{
-			textFieldFrame.size.width = self.frame.size.width;
-			textFieldFrame.origin = CGPointMake(WIDTH_PADDING * 2, 
-												(currentRect.origin.y + currentRect.size.height + HEIGHT_PADDING));
-		}
-		
-		textFieldFrame.origin.y += (HEIGHT_PADDING + 2.0); //fudge by two points to get the button label to line up with the UILabel's text
-		[_textField setFrame:textFieldFrame];
-		
-	}
-	CGRect selfFrame = [self frame];
-	selfFrame.size.height = textFieldFrame.origin.y + textFieldFrame.size.height + HEIGHT_PADDING;
+
 	
 	[UIView animateWithDuration:0.3
 					 animations:^{
