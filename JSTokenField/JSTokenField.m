@@ -49,6 +49,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 - (void)deleteHighlightedToken;
 
 - (void)commonSetup;
+-(BOOL)isValidEmailAddress:(NSString *)possibleEmailAddress;
 @end
 
 
@@ -403,6 +404,12 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	}
 }
 
+#pragma mark utility
+-(BOOL)isValidEmailAddress:(NSString *)possibleEmailAddress
+{
+	return [possibleEmailAddress rangeOfString:@"@"].location != NSNotFound;
+}
+
 #pragma mark -
 #pragma mark UITextFieldDelegate
 
@@ -425,6 +432,15 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
         JSTokenButton *token = [_tokens lastObject];
         [token becomeFirstResponder];		
 		return NO;
+	} else if ([string rangeOfCharacterFromSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]].location != NSNotFound) {
+		//end the current token
+		NSString *tokenString = [[textField text] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+		if ([self isValidEmailAddress:tokenString]) {
+			[self addTokenWithTitle:tokenString representedObject:tokenString];
+		} else {
+			return NO;
+		}
+
 	}
 	
 	return YES;
