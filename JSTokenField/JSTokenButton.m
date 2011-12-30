@@ -30,6 +30,11 @@
 #import "JSTokenField.h"
 #import <QuartzCore/QuartzCore.h>
 
+@interface JSTokenButton ()
+-(void)resetPadding;
+
+@end
+
 @implementation JSTokenButton
 
 @synthesize toggled = _toggled;
@@ -46,17 +51,27 @@
 	
 	[button setTitle:string forState:UIControlStateNormal];
 	
-	[button sizeToFit];
-	CGRect frame = [button frame];
-	frame.size.width += 20;
-	frame.size.height = 25;
-	[button setFrame:frame];
-	
 	[button setToggled:NO];
 	
 	[button setRepresentedObject:obj];
 	
 	return button;
+}
+
+-(void)resetPadding
+{
+	[self sizeToFit];
+	CGRect selfFrame = self.frame;
+	selfFrame.size.width += 20;
+	selfFrame.size.height = 25;
+	self.frame = selfFrame;
+
+}
+
+-(void)setTitle:(NSString *)title forState:(UIControlState)state
+{
+	[super setTitle:title forState:state];
+	[self resetPadding];
 }
 
 - (BOOL)becomeFirstResponder {

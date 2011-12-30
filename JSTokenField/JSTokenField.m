@@ -114,6 +114,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
     [_textField setFont:[UIFont fontWithName:@"Helvetica Neue" size:15.0]];
     
 	CGRect summaryFrame = frame;
+	summaryFrame.size.width -= 25.0;
 	summaryFrame.origin = CGPointZero;
     summaryFrame.origin.y += HEIGHT_PADDING;
 	self.summaryLabel = [[UILabel alloc] initWithFrame:summaryFrame];
@@ -426,17 +427,27 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
 {
+	static NSCharacterSet *delimterCharacterSet = nil;
+	if (delimterCharacterSet == nil) {
+		NSMutableCharacterSet *temporaryCharacterSet = [NSMutableCharacterSet whitespaceAndNewlineCharacterSet];
+		[temporaryCharacterSet formUnionWithCharacterSet:[NSCharacterSet characterSetWithCharactersInString:@","]];
+		delimterCharacterSet = temporaryCharacterSet;
+	}
     if ([string isEqualToString:@""] &&
         (NSEqualRanges(range, NSMakeRange(0, 0)) || [[textField text] isEqualToString:ZERO_WIDTH_SPACE_STRING]))
 	{
         JSTokenButton *token = [_tokens lastObject];
         [token becomeFirstResponder];		
 		return NO;
-	} else if ([string rangeOfCharacterFromSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]].location != NSNotFound) {
+	} else if ([string rangeOfCharacterFromSet:delimterCharacterSet].location != NSNotFound) {
 		//end the current token
-		NSString *tokenString = [[textField text] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+		NSString *tokenString = [[textField text] stringByTrimmingCharactersInSet:delimterCharacterSet];
 		if ([self isValidEmailAddress:tokenString]) {
-			[self addTokenWithTitle:tokenString representedObject:tokenString];
+			id representedObject = tokenString;
+			if ([self.delegate respondsToSelector:@selector(representedObjectForTokenField:title:)]) {
+				representedObject = [self.delegate representedObjectForTokenField:self title:tokenString];
+			}
+			[self addTokenWithTitle:tokenString representedObject:representedObject];
 		} else {
 			return NO;
 		}
@@ -474,6 +485,15 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
         [self addTokenWithTitle:[textField text] representedObject:[textField text]];
         [textField setText:ZERO_WIDTH_SPACE_STRING];
     }
+}
+
+#pragma mark UIView overrides
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
+	//this turns the entire JSTokenView into a touch target to start typing an email address
+	if (self.activated) {
+		[self activate];
+	}
 }
 
 @end
