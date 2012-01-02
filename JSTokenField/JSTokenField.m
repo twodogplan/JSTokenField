@@ -50,6 +50,10 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 
 - (void)commonSetup;
 -(BOOL)isValidEmailAddress:(NSString *)possibleEmailAddress;
+- (BOOL)addTokenFromContentsOfTextField:(UITextField *)textField;
+-(BOOL)canAddTokenFromContentsOfTextField:(UITextField *)textField;
+
++(NSCharacterSet *)emailDelimiterCharacterSet;
 @end
 
 
@@ -61,6 +65,19 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 @synthesize summaryLabel;
 @synthesize delegate = _delegate;
 @synthesize activated;
+@synthesize placeholderText;
+
++(NSCharacterSet *)emailDelimiterCharacterSet
+{
+	static NSCharacterSet *delimterCharacterSet = nil;
+	if (delimterCharacterSet == nil) {
+		NSMutableCharacterSet *temporaryCharacterSet = [NSMutableCharacterSet whitespaceAndNewlineCharacterSet];
+		[temporaryCharacterSet formUnionWithCharacterSet:[NSCharacterSet characterSetWithCharactersInString:@","]];
+		delimterCharacterSet = temporaryCharacterSet;
+	}
+	return delimterCharacterSet;
+}
+
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -165,7 +182,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 							 _textField.alpha = 0.0;
 						 }
 						 completion:^(BOOL finished) {
-							 [_textField setText:nil];
+							 [_textField setText:self.placeholderText];
 							 _textField.alpha = 1.0;
 							 [self setNeedsLayout];
 						 }
@@ -177,6 +194,39 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 		[self setNeedsLayout];
 		
 	}
+}
+
+- (BOOL)addTokenFromContentsOfTextField:(UITextField *)textField
+{
+	BOOL succeeded = YES;
+	
+	if (self.activated) {
+		if ([self canAddTokenFromContentsOfTextField:textField]) {
+			NSString *tokenString = [[textField text] stringByTrimmingCharactersInSet:[[self class] emailDelimiterCharacterSet]];
+			id representedObject = tokenString;
+			if ([self.delegate respondsToSelector:@selector(representedObjectForTokenField:title:)]) {
+				representedObject = [self.delegate representedObjectForTokenField:self title:tokenString];
+			}
+			self.placeholderText = nil;
+			[self addTokenWithTitle:tokenString representedObject:representedObject];
+		} else {
+			succeeded = NO;
+		}
+		
+	} else {
+		succeeded = NO;
+	}
+	
+
+	return succeeded;
+}
+
+-(BOOL)canAddTokenFromContentsOfTextField:(UITextField *)textField
+{
+	NSString *tokenString = [[textField text] stringByTrimmingCharactersInSet:[[self class] emailDelimiterCharacterSet]];
+	BOOL canAdd = [self isValidEmailAddress:tokenString];
+	
+	return canAdd;
 }
 
 
@@ -408,7 +458,24 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 #pragma mark utility
 -(BOOL)isValidEmailAddress:(NSString *)possibleEmailAddress
 {
-	return [possibleEmailAddress rangeOfString:@"@"].location != NSNotFound;
+	static NSPredicate *regularExpressionPredicate = nil;
+	if (regularExpressionPredicate == nil) {
+		//with thanks to Matt Gallagher: http://cocoawithlove.com/2009/06/verifying-that-string-is-email-address.html
+		NSString *emailRegularExpression =
+		@"(?:[a-z0-9!#$%\\&'*+/=?\\^_`{|}~-]+(?:\\.[a-z0-9!#$%\\&'*+/=?\\^_`{|}"
+		@"~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\"
+		@"x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-"
+		@"z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5"
+		@"]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-"
+		@"9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21"
+		@"-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])";
+		
+		regularExpressionPredicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", emailRegularExpression];
+	}
+
+	BOOL isValidEmailAddress = [regularExpressionPredicate evaluateWithObject:possibleEmailAddress];
+	
+	return isValidEmailAddress;
 }
 
 #pragma mark -
@@ -441,16 +508,14 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 		return NO;
 	} else if ([string rangeOfCharacterFromSet:delimterCharacterSet].location != NSNotFound) {
 		//end the current token
-		NSString *tokenString = [[textField text] stringByTrimmingCharactersInSet:delimterCharacterSet];
-		if ([self isValidEmailAddress:tokenString]) {
-			id representedObject = tokenString;
-			if ([self.delegate respondsToSelector:@selector(representedObjectForTokenField:title:)]) {
-				representedObject = [self.delegate representedObjectForTokenField:self title:tokenString];
-			}
-			[self addTokenWithTitle:tokenString representedObject:representedObject];
-		} else {
-			return NO;
-		}
+		BOOL added = [self addTokenFromContentsOfTextField:textField];
+		return added;
+//		NSString *tokenString = [[textField text] stringByTrimmingCharactersInSet:delimterCharacterSet];
+//		if ([self isValidEmailAddress:tokenString]) {
+//			[self addTokenFromContentsOfTextField:textField];
+//		} else {
+//			return NO;
+//		}
 
 	}
 	
@@ -460,7 +525,9 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 - (BOOL)textFieldShouldReturn:(UITextField *)textField
 {
     if (_textField == textField) {
-        if ([self.delegate respondsToSelector:@selector(tokenFieldShouldReturn:)]) {
+		BOOL shouldReturn = [self addTokenFromContentsOfTextField:textField];
+		self.activated = NO;	
+		if (shouldReturn && [self.delegate respondsToSelector:@selector(tokenFieldShouldReturn:)]) {
             return [self.delegate tokenFieldShouldReturn:self];
         }
     }
@@ -482,8 +549,10 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
     }
     else if ([[textField text] length] > 1)
     {
-        [self addTokenWithTitle:[textField text] representedObject:[textField text]];
-        [textField setText:ZERO_WIDTH_SPACE_STRING];
+		BOOL added = [self addTokenFromContentsOfTextField:textField];
+		if (added) {
+			[textField setText:ZERO_WIDTH_SPACE_STRING];
+		}
     }
 }
 
