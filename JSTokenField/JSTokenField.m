@@ -344,14 +344,14 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 	self.activated = YES;
 	self.summaryLabel.text = @"";
 	self.summaryLabel.hidden = YES;
-
+	
 	//show all the tokens
 	[self.tokens enumerateObjectsUsingBlock:^(JSTokenButton *tokenButton, NSUInteger idx, BOOL *stop) {
 		tokenButton.hidden = NO;
 	}];
 	
 	[self.textField becomeFirstResponder];
-
+	
 	[self setNeedsLayout];
 
 }
@@ -510,12 +510,6 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 		//end the current token
 		BOOL added = [self addTokenFromContentsOfTextField:textField];
 		return added;
-//		NSString *tokenString = [[textField text] stringByTrimmingCharactersInSet:delimterCharacterSet];
-//		if ([self isValidEmailAddress:tokenString]) {
-//			[self addTokenFromContentsOfTextField:textField];
-//		} else {
-//			return NO;
-//		}
 
 	}
 	
@@ -560,9 +554,7 @@ NSString *const JSDeletedTokenKey = @"JSDeletedTokenKey";
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	//this turns the entire JSTokenView into a touch target to start typing an email address
-	if (self.activated) {
-		[self activate];
-	}
+	[self activate];
 }
 
 @end
